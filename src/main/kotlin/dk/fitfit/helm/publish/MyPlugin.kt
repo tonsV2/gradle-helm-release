@@ -7,13 +7,15 @@ import org.gradle.api.tasks.TaskAction
 
 class MyPlugin : Plugin<Project> {
     override fun apply(project: Project) {
+        project.extensions.create("helmPublish", HelmPublishExtension::class.java)
         project.tasks.create("release", MyTask::class.java)
     }
 }
 
 open class MyTask : DefaultTask() {
     @TaskAction
-    fun myTask() {
-        println("Hello, World!")
+    fun execute() {
+        val extension: HelmPublishExtension = project.extensions.getByType(HelmPublishExtension::class.java)
+        println(extension.chartPath)
     }
 }
