@@ -1,6 +1,6 @@
-package dk.fitfit.helm.publish
+package dk.fitfit.helm.release
 
-import dk.fitfit.helm.publish.Version.Fraction.*
+import dk.fitfit.helm.release.Version.Fraction.*
 
 data class Version(
         val major: Int,

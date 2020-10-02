@@ -1,6 +1,6 @@
 # Gradle test plugin
 
-../gradle-helm-publish/ && ./gradlew clean publishToMavenLocal && ../publish-plugin-test-chart/ && ./gradlew release
+../gradle-helm-publish/ && ./gradlew clean uploadArchives && ../publish-plugin-test-chart/ && ./gradlew release
 
 https://guides.gradle.org/writing-gradle-plugins/
 

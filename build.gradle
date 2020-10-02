@@ -3,7 +3,7 @@ plugins {
     id 'maven'
 }
 
-group = 'dk.fitfit.helm.publish'
+group = 'dk.fitfit.helm.release'
 version = '1.0.0'
 
 repositories {
