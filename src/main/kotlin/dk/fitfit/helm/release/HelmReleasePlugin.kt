@@ -15,7 +15,7 @@ class HelmReleasePlugin : Plugin<Project> {
         project.extensions.create("helmRelease", HelmReleaseExtension::class.java)
         project.extensions.create("signature", SignatureExtension::class.java)
         project.extensions.create("git", GitExtension::class.java)
-        project.extensions.create("gitepository", RepositoryExtension::class.java)
+        project.extensions.create("repository", RepositoryExtension::class.java)
         project.tasks.create("release", ReleaseTask::class.java)
     }
 }
@@ -92,16 +92,16 @@ open class ReleaseTask : DefaultTask() {
         if (extensions.repository.url.isNotEmpty()) {
             val postChartCommand = if (extensions.repository.username.isNotEmpty() && extensions.repository.password.isNotEmpty()) {
                 """
-                    curl --user "${extensions.repository.username}:${extensions.repository.password}" \
-                    -F "chart=@$chartName-$chartVersion.tgz" \
-                    -F "prov=@$chartName-$chartVersion.tgz.prov" \
-                    ${extensions.repository.url}
+                    curl --fail --user "${extensions.repository.username}:${extensions.repository.password}" \
+                        -F "chart=@$chartName-$chartVersion.tgz" \
+                        -F "prov=@$chartName-$chartVersion.tgz.prov" \
+                        ${extensions.repository.url}
                 """.trimIndent()
             } else {
                 """
-                    curl -F "chart=@$chartName-$chartVersion.tgz" \
-                    -F "prov=@$chartName-$chartVersion.tgz.prov" \
-                    ${extensions.repository.url}
+                    curl --fail -F "chart=@$chartName-$chartVersion.tgz" \
+                        -F "prov=@$chartName-$chartVersion.tgz.prov" \
+                        ${extensions.repository.url}
                 """.trimIndent()
             }
             exec(postChartCommand)
@@ -154,6 +154,7 @@ open class ReleaseTask : DefaultTask() {
 
     private fun printExtensionVariables() {
         val outputExtension = """
+            Extension values:
             debug: ${extensions.debug}
             chartPath: ${extensions.chartPath}
             bumpVersion: ${extensions.bumpVersion}
@@ -206,6 +207,7 @@ open class ReleaseTask : DefaultTask() {
 
     private fun mergeExtensions(): HelmReleaseExtension {
         val extensions: HelmReleaseExtension = project.extensions.getByType(HelmReleaseExtension::class.java)
+
         val gitExtension: GitExtension = project.extensions.getByType(GitExtension::class.java)
         val signatureExtension: SignatureExtension = project.extensions.getByType(SignatureExtension::class.java)
         val repositoryExtension: RepositoryExtension = project.extensions.getByType(RepositoryExtension::class.java)
