@@ -24,7 +24,7 @@ data class Version(
 
     companion object {
         fun of(version: String): Version {
-            val regex = "(\\d+).(\\d+).(\\d+)(?:-(\\S+))?".toRegex()
+            val regex = """^(\d+).(\d+).(\d+)(?:-(\S+))?$""".toRegex()
             val matchResult = regex.find(version)
                     ?: throw IllegalArgumentException("<$version> is not a valid semantic version qualifier")
             val (major, minor, patch, qualifier) = matchResult.destructured
