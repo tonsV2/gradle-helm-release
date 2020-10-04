@@ -1,9 +1,7 @@
 package dk.fitfit.helm.release
 
-import net.justmachinery.shellin.bash
-import net.justmachinery.shellin.collectStdout
+import net.justmachinery.shellin.*
 import net.justmachinery.shellin.exec.InvalidExitCodeException
-import net.justmachinery.shellin.shellin
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -45,43 +43,56 @@ open class ReleaseTask : DefaultTask() {
         }
 
         readChart()
+        println("✅ Chart read")
 
         val chartName = extractChartName()
+        println("✅ Chart name extracted: $chartName")
         val chartVersionString = extractChartVersion()
+        println("✅ Chart version extracted: $chartVersionString")
         val chartVersion = Version.of(chartVersionString)
                 .bump(bumpStrategy)
+        println("✅ Version bumped: $chartVersion")
 
         if (extensions.bumpVersion) {
             writeBackVersion(chartVersion)
+            println("✅ Chart.yaml updated with new version: $chartVersion")
         }
 
         try {
             if (extensions.git.commit) {
                 gitCommit()
+                println("✅ Git commit done!")
             }
 
             if (extensions.git.tag) {
                 gitTag(chartVersion)
+                println("✅ Git tag done!")
             }
 
             createChartPackage()
+            println("✅ Chart package created!")
 
             if (extensions.repository.url.isNotEmpty()) {
                 postChart(chartName, chartVersion)
+                println("✅ Chart package posted to repository!")
             }
 
             if (extensions.deleteLocalPackage) {
                 deleteLocalPackage(chartName, chartVersion)
+                println("✅ Local package deleted!")
             }
 
             if (extensions.git.push) {
                 gitPush()
+                println("✅ Git push!")
                 gitPushTags()
+                println("✅ Git tags pushed!")
             }
-        } catch (e: InvalidExitCodeException) {
-            println(e)
+        } catch (e: BashException) {
+            printErr("❌ Command: ${e.command}")
+            printErr("❌ Output: ${e.output}")
+            printErr("❌ ${e.message}")
         }
-
     }
 
     private fun gitPushTags() {
@@ -154,21 +165,22 @@ open class ReleaseTask : DefaultTask() {
             "--version ${extensions.overrideAppVersion} "
         } else ""
 
-        if (extensions.signature.key.isNotEmpty() && extensions.signature.keyStore.isNotEmpty()) {
-            val helmSignedPackageCommand = "helm package $overrideChartVersion$overrideAppVersion--sign --key '${extensions.signature.key}' --keyring ${extensions.signature.keyStore} ${extensions.chartPath}"
-            exec(helmSignedPackageCommand)
+        val helmPackageCommand = if (extensions.signature.key.isNotEmpty() && extensions.signature.keyStore.isNotEmpty()) {
+            "helm package $overrideChartVersion$overrideAppVersion--sign --key '${extensions.signature.key}' --keyring ${extensions.signature.keyStore} ${extensions.chartPath}"
         } else {
-            val helmPackageCommand = "helm package $overrideChartVersion$overrideAppVersion${extensions.chartPath}"
-            exec(helmPackageCommand)
+            "helm package $overrideChartVersion$overrideAppVersion${extensions.chartPath}"
         }
+        exec(helmPackageCommand)
     }
 
     private fun gitTag(chartVersion: Version) {
+        // TODO: Custom tag... Make the tag customizable through an extension property
         val gitTagCommand = "git tag \"RELEASE-$chartVersion\""
         exec(gitTagCommand)
     }
 
     private fun gitCommit() {
+        // TODO: Custom commit message... Make the commit message customizable through an extension property
         val gitCommitCommand = "git commit $chartPath -m \"Bump version\""
         exec(gitCommitCommand)
     }
@@ -241,9 +253,19 @@ open class ReleaseTask : DefaultTask() {
 
         var output = ""
         shell.new {
-            output = collectStdout {
+            logStdout {
+                { line: CharSequence -> output += line }
+            }
+
+            logStderr {
+                { line: CharSequence -> output += line }
+            }
+
+            try {
                 bash(command).waitFor()
-            }.text
+            } catch (e: InvalidExitCodeException) {
+                throw BashException(e.exitCode, command, output)
+            }
         }
 
         return output
@@ -262,4 +284,10 @@ open class ReleaseTask : DefaultTask() {
 
         return extensions
     }
+}
+
+open class BashException(exitCode : Int, val command: String, val output: String) : InvalidExitCodeException(exitCode)
+
+fun printErr(errorMsg: String) {
+    System.err.println(errorMsg)
 }
