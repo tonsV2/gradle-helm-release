@@ -1,7 +1,10 @@
 package dk.fitfit.helm.release
 
-import net.justmachinery.shellin.*
+import net.justmachinery.shellin.bash
 import net.justmachinery.shellin.exec.InvalidExitCodeException
+import net.justmachinery.shellin.logStderr
+import net.justmachinery.shellin.logStdout
+import net.justmachinery.shellin.shellin
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -286,7 +289,7 @@ open class ReleaseTask : DefaultTask() {
     }
 }
 
-open class BashException(exitCode : Int, val command: String, val output: String) : InvalidExitCodeException(exitCode)
+open class BashException(exitCode: Int, val command: String, val output: String) : InvalidExitCodeException(exitCode)
 
 fun printErr(errorMsg: String) {
     System.err.println(errorMsg)
