@@ -1,6 +1,6 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.0'
-    id 'maven'
+    id "maven-publish"
 }
 
 group = 'dk.fitfit.helm.release'
@@ -28,10 +28,14 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "11"
 }
 
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            repository(url: mavenLocal().url)
+publishing {
+    publications {
+        MyPublication(MavenPublication) {
+            artifacts = [jar]
         }
     }
+}
+
+jar {
+    from configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
 }
