@@ -28,12 +28,7 @@ data class Version(
             val matchResult = regex.find(version)
                     ?: throw IllegalArgumentException("<$version> is not a valid semantic version qualifier")
             val (major, minor, patch, qualifier) = matchResult.destructured
-            return Version(
-                    major = major.toInt(),
-                    minor = minor.toInt(),
-                    patch = patch.toInt(),
-                    qualifier = qualifier.ifEmpty { null }
-            )
+            return Version(major.toInt(), minor.toInt(), patch.toInt(), qualifier.ifEmpty { null })
         }
     }
 }
