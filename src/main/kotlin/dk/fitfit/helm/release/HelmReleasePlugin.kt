@@ -24,7 +24,14 @@ open class ReleaseTask : DefaultTask() {
     // TODO: Should be an extension value
     private val bumpStrategy = Version.Fraction.MINOR
 
+    private val versionRegex = "version: (\\S+)".toRegex()
+    private val nameRegex = "name: (\\S+)".toRegex()
+
     private val extensions = mergeExtensions()
+
+    private var chartPath: String? = null
+    private lateinit var chartFile: File
+    private lateinit var chartFileContent: String
 
     @TaskAction
     fun execute() {
@@ -33,53 +40,112 @@ open class ReleaseTask : DefaultTask() {
             printExtensionVariables()
         }
 
-        if (cleanWorkingDirectory()) {
-//            throw IllegalStateException("Working directory not clean")
+        if (!extensions.ignoreCleanWorkingDirectory && cleanWorkingDirectory()) {
+            throw IllegalStateException("Working directory not clean")
         }
 
-        // Read chart file
-        val chartPath = "${extensions.chartPath}/Chart.yaml"
-        val chartFile = File(chartPath)
-        val chartFileContent = if (!chartFile.isFile) {
-            throw IllegalStateException("$chartPath not found. Consider specifying ")
-        } else {
-            chartFile.readText()
-        }
+        readChart()
 
-        // Extract name
-        val nameRegex = "name: (\\S+)".toRegex()
-        val nameMatchResult = nameRegex.find(chartFileContent)
-                ?: throw IllegalArgumentException("name property not found in $chartPath")
-        val chartName = nameMatchResult.destructured.component1()
+        val chartName = extractChartName()
+        val chartVersionString = extractChartVersion()
+        val chartVersion = Version.of(chartVersionString)
+                .bump(bumpStrategy)
 
-        // Extract version
-        val versionRegex = "version: (\\S+)".toRegex()
-        val versionMatchResult = versionRegex.find(chartFileContent)
-                ?: throw IllegalArgumentException("version property not found in $chartPath")
-        val chartVersionString = versionMatchResult.destructured.component1()
-
-        // Bump version
-        val chartVersion = Version.of(chartVersionString).bump(bumpStrategy)
-
-        // Replace version in file
         if (extensions.bumpVersion) {
-            val replaceFirst = chartFileContent.replaceFirst(versionRegex, "version: $chartVersion")
-            chartFile.writeText(replaceFirst)
+            writeBackVersion(chartVersion)
         }
 
-        // Commit version bump
-        if (extensions.git.commit) {
-            val gitCommitCommand = "git commit $chartPath -m \"Bump version\""
-            exec(gitCommitCommand)
+        try {
+            if (extensions.git.commit) {
+                gitCommit()
+            }
+
+            if (extensions.git.tag) {
+                gitTag(chartVersion)
+            }
+
+            createChartPackage()
+
+            if (extensions.repository.url.isNotEmpty()) {
+                postChart(chartName, chartVersion)
+            }
+
+            if (extensions.deleteLocalPackage) {
+                deleteLocalPackage(chartName, chartVersion)
+            }
+
+            if (extensions.git.push) {
+                gitPush()
+                gitPushTags()
+            }
+        } catch (e: InvalidExitCodeException) {
+            println(e)
         }
 
-        // Git tag
-        if (extensions.git.tag) {
-            val gitTagCommand = "git tag \"RELEASE-$chartVersion\""
-            exec(gitTagCommand)
-        }
+    }
 
-        // Package
+    private fun gitPushTags() {
+        val gitPushTagsCommand = "git push --tags"
+        exec(gitPushTagsCommand)
+    }
+
+    private fun gitPush() {
+        val gitPushCommand = "git push"
+        exec(gitPushCommand)
+    }
+
+    private fun deleteLocalPackage(chartName: String, chartVersion: Version) {
+        // TODO: Use java.nio.file.Files
+        val rmPackageCommand = "rm ${extensions.chartPath}/$chartName-$chartVersion.tgz"
+        exec(rmPackageCommand)
+
+        if (File("${extensions.chartPath}/$chartName-$chartVersion.tgz.prov").isFile) {
+            val rmProvenanceCommand = "rm ${extensions.chartPath}/$chartName-$chartVersion.tgz.prov"
+            exec(rmProvenanceCommand)
+        }
+    }
+
+    private fun postChart(chartName: String, chartVersion: Version) {
+        // TODO: trim extensions.repository.password from output
+        val postChartCommand = if (extensions.repository.username.isNotEmpty() && extensions.repository.password.isNotEmpty()) {
+            """
+                curl --fail --user "${extensions.repository.username}:${extensions.repository.password}" \
+                    -F "chart=@$chartName-$chartVersion.tgz" \
+                    -F "prov=@$chartName-$chartVersion.tgz.prov" \
+                    ${extensions.repository.url}
+            """.trimIndent()
+        } else {
+            """
+                curl --fail -F "chart=@$chartName-$chartVersion.tgz" \
+                    -F "prov=@$chartName-$chartVersion.tgz.prov" \
+                    ${extensions.repository.url}
+            """.trimIndent()
+        }
+        exec(postChartCommand)
+
+        /*
+                    val url = extension.repository.url
+                    val tgz = "$chartName-$chartVersion.tgz"
+                    val tgzPath = "${extension.chartPath}/$tgz"
+
+                    val request = Fuel.upload(url)
+
+                    request.add(
+                            FileDataPart(File(tgzPath), name = "chart", filename = "$tgz"),
+                            FileDataPart(File("$tgzPath.prov"), name = "prov", filename = "$tgz.prov")
+                    )
+
+                    if (extension.repository.username.isNotEmpty() && extension.repository.password.isNotEmpty()) {
+                        request.authentication().basic(extension.repository.username, extension.repository.password)
+                    }
+
+                    request.response { result ->
+                        println(result)
+                    }
+        */
+    }
+
+    private fun createChartPackage() {
         if (extensions.signature.key.isNotEmpty() && extensions.signature.keyStore.isNotEmpty()) {
             val helmSignedPackageCommand = "helm package --sign --key '${extensions.signature.key}' --keyring ${extensions.signature.keyStore} ${extensions.chartPath}"
             exec(helmSignedPackageCommand)
@@ -87,68 +153,42 @@ open class ReleaseTask : DefaultTask() {
             val helmPackageCommand = "helm package ${extensions.chartPath}"
             exec(helmPackageCommand)
         }
+    }
 
-        // Post chart
-        if (extensions.repository.url.isNotEmpty()) {
-            val postChartCommand = if (extensions.repository.username.isNotEmpty() && extensions.repository.password.isNotEmpty()) {
-                """
-                    curl --fail --user "${extensions.repository.username}:${extensions.repository.password}" \
-                        -F "chart=@$chartName-$chartVersion.tgz" \
-                        -F "prov=@$chartName-$chartVersion.tgz.prov" \
-                        ${extensions.repository.url}
-                """.trimIndent()
-            } else {
-                """
-                    curl --fail -F "chart=@$chartName-$chartVersion.tgz" \
-                        -F "prov=@$chartName-$chartVersion.tgz.prov" \
-                        ${extensions.repository.url}
-                """.trimIndent()
-            }
-            exec(postChartCommand)
+    private fun gitTag(chartVersion: Version) {
+        val gitTagCommand = "git tag \"RELEASE-$chartVersion\""
+        exec(gitTagCommand)
+    }
 
-/*
-            val url = extension.repository.url
-            val tgz = "$chartName-$chartVersion.tgz"
-            val tgzPath = "${extension.chartPath}/$tgz"
+    private fun gitCommit() {
+        val gitCommitCommand = "git commit $chartPath -m \"Bump version\""
+        exec(gitCommitCommand)
+    }
 
-            val request = Fuel.upload(url)
+    private fun writeBackVersion(chartVersion: Version) {
+        val replaceFirst = chartFileContent.replaceFirst(versionRegex, "version: $chartVersion")
+        chartFile.writeText(replaceFirst)
+    }
 
-            request.add(
-                    FileDataPart(File(tgzPath), name = "chart", filename = "$tgz"),
-                    FileDataPart(File("$tgzPath.prov"), name = "prov", filename = "$tgz.prov")
-            )
+    private fun extractChartVersion(): String {
+        val versionMatchResult = versionRegex.find(chartFileContent)
+                ?: throw IllegalArgumentException("version property not found in $chartPath")
+        return versionMatchResult.destructured.component1()
+    }
 
-            if (extension.repository.username.isNotEmpty() && extension.repository.password.isNotEmpty()) {
-                request.authentication().basic(extension.repository.username, extension.repository.password)
-            }
+    private fun extractChartName(): String {
+        val nameMatchResult = nameRegex.find(chartFileContent)
+                ?: throw IllegalArgumentException("name property not found in $chartPath")
+        return nameMatchResult.destructured.component1()
+    }
 
-            request.response { result ->
-                println(result)
-            }
-*/
-        }
-
-        // Remove package and provenance file
-        if (extensions.deleteLocalPackage) {
-            val rmPackageCommand = "rm ${extensions.chartPath}/$chartName-$chartVersion.tgz"
-            exec(rmPackageCommand)
-
-            if (File("${extensions.chartPath}/$chartName-$chartVersion.tgz.prov").isFile) {
-                val rmProvenanceCommand = "rm ${extensions.chartPath}/$chartName-$chartVersion.tgz.prov"
-                exec(rmProvenanceCommand)
-            }
-        }
-
-        // Git push
-        if (extensions.git.push) {
-            val gitPushCommand = "git push"
-            exec(gitPushCommand)
-        }
-
-        // Git push tags
-        if (extensions.git.push) {
-            val gitPushTagsCommand = "git push --tags"
-            exec(gitPushTagsCommand)
+    private fun readChart() {
+        chartPath = "${extensions.chartPath}/Chart.yaml"
+        chartFile = File(chartPath)
+        chartFileContent = if (!chartFile.isFile) {
+            throw IllegalStateException("$chartPath not found. Consider specifying ")
+        } else {
+            chartFile.readText()
         }
     }
 
@@ -193,13 +233,9 @@ open class ReleaseTask : DefaultTask() {
 
         var output = ""
         shell.new {
-            try {
-                output = collectStdout {
-                    bash(command).waitFor()
-                }.text
-            } catch (e: InvalidExitCodeException) {
-                println(e)
-            }
+            output = collectStdout {
+                bash(command).waitFor()
+            }.text
         }
 
         return output
