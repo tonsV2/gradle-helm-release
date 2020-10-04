@@ -20,6 +20,8 @@ open class RepositoryExtension(
 open class HelmReleaseExtension(
         var debug: Boolean = false,
         var ignoreCleanWorkingDirectory: Boolean = false,
+        var overrideChartVersion: String = "",
+        var overrideAppVersion: String = "",
         var chartPath: String = ".",
         var bumpVersion: Boolean = true,
         var git: GitExtension = GitExtension(),

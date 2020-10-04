@@ -146,11 +146,19 @@ open class ReleaseTask : DefaultTask() {
     }
 
     private fun createChartPackage() {
+        val overrideChartVersion = if (extensions.overrideChartVersion.isNotEmpty()) {
+            "--version ${extensions.overrideChartVersion} "
+        } else ""
+
+        val overrideAppVersion = if (extensions.overrideAppVersion.isNotEmpty()) {
+            "--version ${extensions.overrideAppVersion} "
+        } else ""
+
         if (extensions.signature.key.isNotEmpty() && extensions.signature.keyStore.isNotEmpty()) {
-            val helmSignedPackageCommand = "helm package --sign --key '${extensions.signature.key}' --keyring ${extensions.signature.keyStore} ${extensions.chartPath}"
+            val helmSignedPackageCommand = "helm package $overrideChartVersion$overrideAppVersion--sign --key '${extensions.signature.key}' --keyring ${extensions.signature.keyStore} ${extensions.chartPath}"
             exec(helmSignedPackageCommand)
         } else {
-            val helmPackageCommand = "helm package ${extensions.chartPath}"
+            val helmPackageCommand = "helm package $overrideChartVersion$overrideAppVersion${extensions.chartPath}"
             exec(helmPackageCommand)
         }
     }
