@@ -89,7 +89,7 @@ open class ReleaseTask : DefaultTask() {
                 gitPush()
                 println("✅ Git push!")
                 gitPushTags()
-                println("✅ Git tags pushed!")
+                println("✅ Git push tags!")
             }
         } catch (e: BashException) {
             printErr("❌ Command: ${e.command}")
