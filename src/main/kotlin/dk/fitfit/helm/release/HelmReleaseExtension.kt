@@ -1,6 +1,7 @@
 package dk.fitfit.helm.release
 
 open class GitExtension(
+        var requireCleanWorkingDirectory: Boolean = true,
         var tag: Boolean = true,
         var commit: Boolean = true,
         var push: Boolean = true
@@ -19,7 +20,6 @@ open class RepositoryExtension(
 
 open class HelmReleaseExtension(
         var debug: Boolean = false,
-        var ignoreCleanWorkingDirectory: Boolean = false,
         var overrideChartVersion: String = "",
         var overrideAppVersion: String = "",
         var chartPath: String = ".",

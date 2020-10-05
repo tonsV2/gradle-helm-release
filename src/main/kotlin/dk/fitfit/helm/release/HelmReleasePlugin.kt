@@ -41,7 +41,7 @@ open class ReleaseTask : DefaultTask() {
             printExtensionVariables()
         }
 
-        if (!extensions.ignoreCleanWorkingDirectory && cleanWorkingDirectory()) {
+        if (extensions.git.requireCleanWorkingDirectory && cleanWorkingDirectory()) {
             throw IllegalStateException("Working directory not clean")
         }
 
