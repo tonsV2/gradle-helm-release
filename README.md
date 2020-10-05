@@ -1,28 +1,52 @@
-# Gradle test plugin
+# Gradle Helm Release Plugin
 
-../gradle-helm-publish/ && ./gradlew clean uploadArchives && ../publish-plugin-test-chart/ && ./gradlew release
+A simple plugin for automating the release a Helm chart.
 
-https://guides.gradle.org/writing-gradle-plugins/
+The code is horrible, pull requests are welcome!
 
-https://www.praqma.com/stories/gradle-plugin-bootstrap/
-https://riptutorial.com/gradle/example/19058/how-to-write-a-standalone-plugin
-https://medium.com/@q2ad/custom-gradle-plugin-in-java-5d04866e9e53
+## Motivation
 
-https://github.com/bintray/gradle-bintray-plugin#readme
-https://mymavenrepo.com/docs/gradle.auth.html
+My usual process for releasing a Helm chart involves bumping the version, git committing/tagging/pushing, creating a signed package, posting that to a repository and finally a bit of clean up.
 
+Due to the number of steps involved it makes sense to automate the process. Initially I did so using a bash script but copying that between projects leads to inconsistency.
 
-# Release
-* Run tests (optional)
-* Ensure git is clean
-* Bump version in `build.gradle`
-* Commit -m 'Bump version to $version'
-* Tag commit with 'v$version'
-* Save $branch
-* Merge into /release
-* Push release
-* Co $branch
+Since I live in a Java world I thought I'd wrap it up in a gradle plugin.
 
-# Deploy
-* Run tests
-* Deploy from /release
+## Usage
+### Configuration
+A minimal `build.gradle` file could look like the following
+
+```groovy
+buildscript {
+    repositories {
+        maven { url 'https://dl.bintray.com/tons/tons' }
+    }
+    dependencies {
+        classpath 'dk.fitfit.helm.release:helm-release:1.0.0'
+    }
+}
+
+apply plugin: 'helm-release'
+
+helmRelease {
+    deleteLocalPackage = false
+}
+```
+
+A slightly more advanced example can be seen [here](https://github.com/tonsV2/surf-screenshotter-chart/blob/eca1559f1ec3c055927f33e7c6bfe75d91968e45/build.gradle).
+
+### Release chart
+```bash
+./gradlew release
+```
+
+## Development
+### Release this plugin
+```bash
+./gradlew bintrayUpload
+```
+
+### Local publishing
+```bash
+./gradlew publishToMavenLocal
+```
