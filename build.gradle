@@ -1,6 +1,7 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.0'
     id "maven-publish"
+    id "com.jfrog.bintray" version "1.8.4"
 }
 
 group = 'dk.fitfit.helm.release'
@@ -8,7 +9,6 @@ version = '1.0.0'
 
 repositories {
     mavenCentral()
-    mavenLocal()
     maven { url 'https://dl.bintray.com/scottpjohnson/generic/' }
     maven { url 'https://jcenter.bintray.com' }
 }
@@ -38,4 +38,17 @@ publishing {
 
 jar {
     from configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+}
+
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_KEY')
+    publications = ['MyPublication']
+    publish = true
+    pkg {
+        repo = 'tons'
+        name = 'helm-release'
+        vcsUrl = 'https://github.com/tonsV2/gradle-helm-release.git'
+        licenses = ['Apache-2.0']
+    }
 }
