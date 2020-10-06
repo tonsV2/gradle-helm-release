@@ -32,7 +32,7 @@ open class ReleaseTask : DefaultTask() {
 
     private val extensions = mergeExtensions()
 
-    private var chartPath: String? = null
+    private lateinit var chartPath: String
     private lateinit var chartFile: File
     private lateinit var chartFileContent: String
     private lateinit var chartVersion: Version
