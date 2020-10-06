@@ -20,12 +20,12 @@ open class RepositoryExtension(
 
 open class HelmReleaseExtension(
         var debug: Boolean = false,
+        var chartPath: String = ".",
         var overrideChartVersion: String = "",
         var overrideAppVersion: String = "",
-        var chartPath: String = ".",
         var bumpVersion: Boolean = true,
+        var deleteLocalPackage: Boolean = true,
         var git: GitExtension = GitExtension(),
         var signature: SignatureExtension = SignatureExtension(),
-        var repository: RepositoryExtension = RepositoryExtension(),
-        var deleteLocalPackage: Boolean = true
+        var repository: RepositoryExtension = RepositoryExtension()
 )
