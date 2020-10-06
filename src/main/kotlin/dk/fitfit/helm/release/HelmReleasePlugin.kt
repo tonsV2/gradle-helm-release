@@ -33,6 +33,7 @@ open class ReleaseTask : DefaultTask() {
     private var chartPath: String? = null
     private lateinit var chartFile: File
     private lateinit var chartFileContent: String
+    private lateinit var chartVersion: Version
 
     @TaskAction
     fun execute() {
@@ -50,13 +51,18 @@ open class ReleaseTask : DefaultTask() {
 
         val chartName = extractChartName()
         println("✅ Chart name extracted: $chartName")
-        val chartVersionString = extractChartVersion()
-        println("✅ Chart version extracted: $chartVersionString")
-        val chartVersion = Version.of(chartVersionString)
-                .bump(bumpStrategy)
-        println("✅ Version bumped: $chartVersion")
 
-        if (extensions.bumpVersion) {
+        if (extensions.overrideChartVersion.isEmpty()) {
+            val chartVersionString = extractChartVersion()
+            println("✅ Chart version extracted: $chartVersionString")
+            chartVersion = Version.of(chartVersionString)
+                    .bump(bumpStrategy)
+            println("✅ Version bumped: $chartVersion")
+        } else {
+            chartVersion = Version.of(extensions.overrideChartVersion)
+        }
+
+        if (extensions.overrideChartVersion.isEmpty() && extensions.bumpVersion) {
             writeBackVersion(chartVersion)
             println("✅ Chart.yaml updated with new version: $chartVersion")
         }
