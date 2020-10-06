@@ -10,6 +10,8 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskAction
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 
 class HelmReleasePlugin : Plugin<Project> {
     override fun apply(project: Project) {
@@ -87,7 +89,7 @@ open class ReleaseTask : DefaultTask() {
             }
 
             if (extensions.deleteLocalPackage) {
-                deleteLocalPackage(chartName, chartVersion)
+                deleteLocalPackage(chartName)
                 println("✅ Local package deleted!")
             }
 
@@ -114,15 +116,12 @@ open class ReleaseTask : DefaultTask() {
         exec(gitPushCommand)
     }
 
-    private fun deleteLocalPackage(chartName: String, chartVersion: Version) {
-        // TODO: Use java.nio.file.Files
-        val rmPackageCommand = "rm ${extensions.chartPath}/$chartName-$chartVersion.tgz"
-        exec(rmPackageCommand)
+    private fun deleteLocalPackage(chartName: String) {
+        val packagePath = "${extensions.chartPath}/$chartName-$chartVersion.tgz"
+        Files.delete(Paths.get(packagePath))
 
-        if (File("${extensions.chartPath}/$chartName-$chartVersion.tgz.prov").isFile) {
-            val rmProvenanceCommand = "rm ${extensions.chartPath}/$chartName-$chartVersion.tgz.prov"
-            exec(rmProvenanceCommand)
-        }
+        val provenancePath = "${extensions.chartPath}/$chartName-$chartVersion.tgz.prov"
+        Files.deleteIfExists(Paths.get(provenancePath))
     }
 
     private fun postChart(chartName: String, chartVersion: Version) {
