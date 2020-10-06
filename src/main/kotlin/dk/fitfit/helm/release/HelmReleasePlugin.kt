@@ -65,7 +65,7 @@ open class ReleaseTask : DefaultTask() {
         }
 
         if (extensions.overrideChartVersion.isEmpty() && extensions.bumpVersion) {
-            writeBackVersion(chartVersion)
+            writeBackVersion()
             println("✅ Chart.yaml updated with new version: $chartVersion")
         }
 
@@ -76,7 +76,7 @@ open class ReleaseTask : DefaultTask() {
             }
 
             if (extensions.git.tag) {
-                gitTag(chartVersion)
+                gitTag()
                 println("✅ Git tag done!")
             }
 
@@ -84,7 +84,7 @@ open class ReleaseTask : DefaultTask() {
             println("✅ Chart package created!")
 
             if (extensions.repository.url.isNotEmpty()) {
-                postChart(chartName, chartVersion)
+                postChart(chartName)
                 println("✅ Chart package posted to repository!")
             }
 
@@ -124,7 +124,7 @@ open class ReleaseTask : DefaultTask() {
         Files.deleteIfExists(Paths.get(provenancePath))
     }
 
-    private fun postChart(chartName: String, chartVersion: Version) {
+    private fun postChart(chartName: String) {
         // TODO: trim extensions.repository.password from output
         val postChartCommand = if (extensions.repository.username.isNotEmpty() && extensions.repository.password.isNotEmpty()) {
             """
@@ -181,7 +181,7 @@ open class ReleaseTask : DefaultTask() {
         exec(helmPackageCommand)
     }
 
-    private fun gitTag(chartVersion: Version) {
+    private fun gitTag() {
         // TODO: Custom tag... Make the tag customizable through an extension property
         val gitTagCommand = "git tag \"RELEASE-$chartVersion\""
         exec(gitTagCommand)
@@ -193,7 +193,7 @@ open class ReleaseTask : DefaultTask() {
         exec(gitCommitCommand)
     }
 
-    private fun writeBackVersion(chartVersion: Version) {
+    private fun writeBackVersion() {
         val replaceFirst = chartFileContent.replaceFirst(versionRegex, "version: $chartVersion")
         chartFile.writeText(replaceFirst)
     }
