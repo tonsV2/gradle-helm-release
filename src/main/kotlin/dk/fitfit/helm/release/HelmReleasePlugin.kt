@@ -1,5 +1,8 @@
 package dk.fitfit.helm.release
 
+import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.FileDataPart
+import com.github.kittinunf.fuel.core.extensions.authentication
 import net.justmachinery.shellin.bash
 import net.justmachinery.shellin.exec.InvalidExitCodeException
 import net.justmachinery.shellin.logStderr
@@ -125,43 +128,24 @@ open class ReleaseTask : DefaultTask() {
     }
 
     private fun postChart(chartName: String) {
-        // TODO: trim extensions.repository.password from output
-        val postChartCommand = if (extensions.repository.username.isNotEmpty() && extensions.repository.password.isNotEmpty()) {
-            """
-                curl --fail --user "${extensions.repository.username}:${extensions.repository.password}" \
-                    -F "chart=@$chartName-$chartVersion.tgz" \
-                    -F "prov=@$chartName-$chartVersion.tgz.prov" \
-                    ${extensions.repository.url}
-            """.trimIndent()
-        } else {
-            """
-                curl --fail -F "chart=@$chartName-$chartVersion.tgz" \
-                    -F "prov=@$chartName-$chartVersion.tgz.prov" \
-                    ${extensions.repository.url}
-            """.trimIndent()
+        val chartPackage = "$chartPath/$chartName-$chartVersion.tgz"
+
+        val request = Fuel.upload(extensions.repository.url)
+
+        request.add(FileDataPart(File(chartPackage), name = "chart", filename = chartPackage))
+        if (extensions.signature.key.isNotEmpty()) {
+            request.add(FileDataPart(File("$chartPackage.prov"), name = "prov", filename = "$chartPackage.prov"))
         }
-        exec(postChartCommand)
 
-        /*
-                    val url = extension.repository.url
-                    val tgz = "$chartName-$chartVersion.tgz"
-                    val tgzPath = "${extension.chartPath}/$tgz"
+        val username = extensions.repository.username
+        val password = extensions.repository.password
+        if (username.isNotEmpty() && password.isNotEmpty()) {
+            request.authentication().basic(username, password)
+        }
 
-                    val request = Fuel.upload(url)
-
-                    request.add(
-                            FileDataPart(File(tgzPath), name = "chart", filename = "$tgz"),
-                            FileDataPart(File("$tgzPath.prov"), name = "prov", filename = "$tgz.prov")
-                    )
-
-                    if (extension.repository.username.isNotEmpty() && extension.repository.password.isNotEmpty()) {
-                        request.authentication().basic(extension.repository.username, extension.repository.password)
-                    }
-
-                    request.response { result ->
-                        println(result)
-                    }
-        */
+        request.response { result ->
+            println(result)
+        }
     }
 
     private fun createChartPackage() {
