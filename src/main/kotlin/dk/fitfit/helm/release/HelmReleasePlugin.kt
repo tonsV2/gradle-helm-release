@@ -22,6 +22,7 @@ class HelmReleasePlugin : Plugin<Project> {
         project.extensions.create("signature", SignatureExtension::class.java)
         project.extensions.create("git", GitExtension::class.java)
         project.extensions.create("repository", RepositoryExtension::class.java)
+
         project.tasks.create("release", ReleaseTask::class.java)
     }
 }
@@ -52,60 +53,60 @@ open class ReleaseTask : DefaultTask() {
         }
 
         readChart()
-        println("✅ Chart read")
+        printSuccess("Chart read")
 
         val chartName = extractChartName()
-        println("✅ Chart name extracted: $chartName")
+        printSuccess("Chart name extracted: $chartName")
 
         if (extensions.overrideChartVersion.isEmpty()) {
             val chartVersionString = extractChartVersion()
-            println("✅ Chart version extracted: $chartVersionString")
+            printSuccess("Chart version extracted: $chartVersionString")
             chartVersion = Version.of(chartVersionString)
                     .bump(bumpStrategy)
-            println("✅ Version bumped: $chartVersion")
+            printSuccess("Version bumped: $chartVersion")
         } else {
             chartVersion = Version.of(extensions.overrideChartVersion)
         }
 
         if (extensions.overrideChartVersion.isEmpty() && extensions.bumpVersion) {
             writeBackVersion()
-            println("✅ Chart.yaml updated with new version: $chartVersion")
+            printSuccess("Chart.yaml updated with version: $chartVersion")
         }
 
         try {
             if (extensions.git.commit) {
                 gitCommit()
-                println("✅ Git commit done!")
+                printSuccess("Git commit")
             }
 
             if (extensions.git.tag) {
                 gitTag()
-                println("✅ Git tag done!")
+                printSuccess("Git tag")
             }
 
             createChartPackage()
-            println("✅ Chart package created!")
+            printSuccess("Chart packaged")
 
             if (extensions.repository.url.isNotEmpty()) {
                 postChart(chartName)
-                println("✅ Chart package posted to repository!")
+                printSuccess("Chart package posted to repository")
             }
 
             if (extensions.deleteLocalPackage) {
                 deleteLocalPackage(chartName)
-                println("✅ Local package deleted!")
+                printSuccess("Local package deleted")
             }
 
             if (extensions.git.push) {
                 gitPush()
-                println("✅ Git push!")
+                printSuccess("Git push")
                 gitPushTags()
-                println("✅ Git push tags!")
+                printSuccess("Git push tags")
             }
         } catch (e: BashException) {
-            printErr("❌ Command: ${e.command}")
-            printErr("❌ Output: ${e.output}")
-            printErr("❌ ${e.message}")
+            printError("❌ Command: ${e.command}")
+            printError("❌ Output: ${e.output}")
+            printError("❌ ${e.message}")
         }
     }
 
@@ -280,6 +281,10 @@ open class ReleaseTask : DefaultTask() {
 
 open class BashException(exitCode: Int, val command: String, val output: String) : InvalidExitCodeException(exitCode)
 
-fun printErr(errorMsg: String) {
+fun printError(errorMsg: String) {
     System.err.println(errorMsg)
+}
+
+fun printSuccess(successMsg: String) {
+    println("✅ $successMsg")
 }
