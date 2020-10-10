@@ -2,7 +2,9 @@ package dk.fitfit.helm.release
 
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.FileDataPart
+import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.extensions.authentication
+import com.github.kittinunf.result.Result
 import net.justmachinery.shellin.bash
 import net.justmachinery.shellin.exec.InvalidExitCodeException
 import net.justmachinery.shellin.logStderr
@@ -103,6 +105,9 @@ open class ReleaseTask : DefaultTask() {
                 gitPushTags()
                 printSuccess("Git push tags")
             }
+        } catch (e: FuelError) {
+            printError(e.message.toString())
+            e.exception.printStackTrace()
         } catch (e: BashException) {
             printError("❌ Command: ${e.command}")
             printError("❌ Output: ${e.output}")
@@ -129,23 +134,39 @@ open class ReleaseTask : DefaultTask() {
     }
 
     private fun postChart(chartName: String) {
-        val chartPackage = "$chartPath/$chartName-$chartVersion.tgz"
+        val chartPackage = "$chartName-$chartVersion.tgz"
 
-        val request = Fuel.upload(extensions.repository.url)
+        val uploadRequest = Fuel.upload(extensions.repository.url)
 
-        request.add(FileDataPart(File(chartPackage), name = "chart", filename = chartPackage))
+        val chartDataPart = FileDataPart.from(chartPackage, name = "chart")
+        uploadRequest.add(chartDataPart)
         if (extensions.signature.key.isNotEmpty()) {
-            request.add(FileDataPart(File("$chartPackage.prov"), name = "prov", filename = "$chartPackage.prov"))
+            val provDataPart = FileDataPart.from("$chartPackage.prov", name = "prov")
+            uploadRequest.add(provDataPart)
         }
 
         val username = extensions.repository.username
         val password = extensions.repository.password
         if (username.isNotEmpty() && password.isNotEmpty()) {
-            request.authentication().basic(username, password)
+            uploadRequest.authentication().basic(username, password)
         }
 
-        request.response { result ->
-            println(result)
+        uploadRequest.progress { readBytes, totalBytes ->
+            val progress = readBytes.toFloat() / totalBytes.toFloat() * 100
+            println("Bytes uploaded $readBytes / $totalBytes ($progress %)")
+        }
+
+        val (request, response, result) = uploadRequest.response()
+        println("response.statusCode: ${response.statusCode}")
+        when (result) {
+            is Result.Failure -> {
+                throw result.getException()
+//                println("Error: ${result.error}")
+            }
+            is Result.Success -> {
+                val data = result.get()
+                println("Data: $data")
+            }
         }
     }
 
