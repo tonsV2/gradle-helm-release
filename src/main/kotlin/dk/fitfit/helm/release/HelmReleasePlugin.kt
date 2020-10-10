@@ -101,9 +101,9 @@ open class ReleaseTask : DefaultTask() {
                 printSuccess("Git push tags")
             }
         } catch (e: BashException) {
-            printError("❌ Command: ${e.command}")
-            printError("❌ Output: ${e.output}")
-            printError("❌ ${e.message}")
+            printError("Command: ${e.command}")
+            printError("Output: ${e.output}")
+            printError("${e.message}")
         }
     }
 
@@ -298,7 +298,7 @@ open class ReleaseTask : DefaultTask() {
 open class BashException(exitCode: Int, val command: String, val output: String) : InvalidExitCodeException(exitCode)
 
 fun printError(errorMsg: String) {
-    System.err.println(errorMsg)
+    System.err.println("❌ $errorMsg")
 }
 
 fun printSuccess(successMsg: String) {
