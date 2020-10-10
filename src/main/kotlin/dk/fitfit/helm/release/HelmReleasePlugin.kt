@@ -142,27 +142,6 @@ open class ReleaseTask : DefaultTask() {
             """.trimIndent()
         }
         exec(postChartCommand)
-
-        /*
-                    val url = extension.repository.url
-                    val tgz = "$chartName-$chartVersion.tgz"
-                    val tgzPath = "${extension.chartPath}/$tgz"
-
-                    val request = Fuel.upload(url)
-
-                    request.add(
-                            FileDataPart(File(tgzPath), name = "chart", filename = "$tgz"),
-                            FileDataPart(File("$tgzPath.prov"), name = "prov", filename = "$tgz.prov")
-                    )
-
-                    if (extension.repository.username.isNotEmpty() && extension.repository.password.isNotEmpty()) {
-                        request.authentication().basic(extension.repository.username, extension.repository.password)
-                    }
-
-                    request.response { result ->
-                        println(result)
-                    }
-        */
     }
 
     private fun createChartPackage() {
