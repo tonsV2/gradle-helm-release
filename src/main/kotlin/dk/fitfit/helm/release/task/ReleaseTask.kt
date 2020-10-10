@@ -132,7 +132,7 @@ open class ReleaseTask : BaseTask() {
         } else ""
 
         val overrideAppVersion = if (extensions.overrideAppVersion.isNotEmpty()) {
-            "--version ${extensions.overrideAppVersion} "
+            "--app-version ${extensions.overrideAppVersion} "
         } else ""
 
         val helmPackageCommand = if (extensions.signature.key.isNotEmpty() && extensions.signature.keyStore.isNotEmpty()) {
