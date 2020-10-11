@@ -5,7 +5,7 @@ import dk.fitfit.helm.release.task.Bash
 import org.yaml.snakeyaml.Yaml
 import java.io.File
 
-class HelmfileService(private val path: String = ".", private val file: String = "helmfile.yaml") {
+class HelmfileService(private val path: String = "./", private val file: String = "helmfile.yaml") {
     private val yaml = Yaml()
     private val bash = Bash()
     private val helmfile = File("$path$file")
