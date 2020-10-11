@@ -1,5 +1,5 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.4.0'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.10'
     id "maven-publish"
     id "com.jfrog.bintray" version "1.8.4"
 }
@@ -15,9 +15,11 @@ repositories {
 
 dependencies {
     compile gradleApi()
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.4.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.4.10"
 
     implementation 'net.justmachinery.shellin:shellin:0.2.2'
+    implementation 'com.google.guava:guava:29.0-jre'
+    implementation 'org.yaml:snakeyaml:1.27'
 }
 
 compileKotlin {

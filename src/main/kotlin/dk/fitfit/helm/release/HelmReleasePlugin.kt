@@ -1,5 +1,6 @@
 package dk.fitfit.helm.release
 
+import dk.fitfit.helm.release.task.DeployTask
 import dk.fitfit.helm.release.task.ReleaseTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -12,5 +13,6 @@ class HelmReleasePlugin : Plugin<Project> {
         project.extensions.create("repository", RepositoryExtension::class.java)
 
         project.tasks.create("release", ReleaseTask::class.java)
+        project.tasks.create("deploy", DeployTask::class.java)
     }
 }

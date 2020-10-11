@@ -1,0 +1,58 @@
+package dk.fitfit.helm.release.service.helmfile
+
+import com.google.common.base.CaseFormat
+import dk.fitfit.helm.release.task.Bash
+import org.yaml.snakeyaml.Yaml
+import java.io.File
+
+class HelmfileService(private val path: String = ".", private val file: String = "helmfile.yaml") {
+    private val yaml = Yaml()
+    private val bash = Bash()
+    private val helmfile = File("$path$file")
+
+    fun getEnvironments(): Set<String> {
+        val inputStream = File("$path$file").inputStream()
+        val obj: Map<String, Map<String, Any>> = yaml.load(inputStream)
+        return obj["environments"]?.keys ?: throw EnvironmentsNotFoundException("$path$file")
+    }
+
+    fun getVersion(projectName: String, environment: String): String {
+        val inputStream = File("$path$file").inputStream()
+        val obj: Map<String, Map<String, Map<String, List<Map<String, Map<String, Any>>>>>> = yaml.load(inputStream)
+        val values = obj["environments"]?.get(environment)?.get("values")
+        val releases = values?.first { it.keys.contains(projectNameLowerCamel(projectName)) }
+        return releases?.get(projectNameLowerCamel(projectName))?.get("version").toString()
+    }
+
+    // Inspiration: https://stackoverflow.com/a/64298773/672009
+    private fun getReplacePropertyRegex(projectName: String, environment: String, property: String) = """(environments:
+            |(?:\R\h{2}.*)*?\R\h{2}$environment:
+            |(?:\R\h{4}.*)*?\R\h{6}-\h*${projectNameLowerCamel(projectName)}:
+            |(?:\R\h{10}.*)*?\R\h{10}$property:\h*)\S+(.*)
+        """.trimMargin().toRegex(RegexOption.COMMENTS)
+
+    fun update(projectName: String, environment: String, version: String, installed: String = "true") {
+        val helmfileContent = helmfile.readText()
+
+        val versionRegex = getReplacePropertyRegex(projectName, environment, "version")
+        val versionUpdatedHelmfile = versionRegex.replaceFirst(helmfileContent, "$1$version$2")
+
+        val installedRegex = getReplacePropertyRegex(projectName, environment, "installed")
+        val updatedHelmfile = installedRegex.replaceFirst(versionUpdatedHelmfile, "$1$installed$2")
+
+        helmfile.writeText(updatedHelmfile)
+
+        println("$projectName, $environment, $version")
+        // TODO: Git commit
+    }
+
+    fun sync(projectName: String, environment: String) {
+        val syncCommand = "helmfile -e $environment --selector name=$projectName sync"
+        println(syncCommand)
+//        bash.exec(syncCommand, path)
+    }
+
+    private fun projectNameLowerCamel(projectName: String) = CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, projectName)
+}
+
+open class EnvironmentsNotFoundException(targetFile: String) : RuntimeException("The environments property could not be extracted from $targetFile")

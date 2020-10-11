@@ -1,14 +1,11 @@
 package dk.fitfit.helm.release.task
 
-import net.justmachinery.shellin.bash
+import net.justmachinery.shellin.*
 import net.justmachinery.shellin.exec.InvalidExitCodeException
-import net.justmachinery.shellin.logStderr
-import net.justmachinery.shellin.logStdout
-import net.justmachinery.shellin.shellin
 import org.gradle.api.DefaultTask
 
-abstract class BaseTask : DefaultTask() {
-    fun exec(command: String, path: String = ".", debug: Boolean = false): MutableList<String> {
+class Bash {
+    fun exec(command: String, path: String = ".", debug: Boolean = false): List<String> {
         if (debug) {
             println("Command: $command")
         }
@@ -19,17 +16,14 @@ abstract class BaseTask : DefaultTask() {
         }
 
         val output = mutableListOf<String>()
+
         shell.new {
-            logStdout {
-                { line: CharSequence -> output.add(line.toString()) }
-            }
-
-            logStderr {
-                { line: CharSequence -> output.add(line.toString()) }
-            }
-
             try {
-                bash(command).waitFor()
+                collectStdout {
+                    bash(command).waitFor()
+                }.stream.use {
+                    it.reader().forEachLine { output.add(it) }
+                }
             } catch (e: InvalidExitCodeException) {
                 throw BashException(e.exitCode, command, output.joinToString(System.lineSeparator()))
             }
@@ -37,6 +31,10 @@ abstract class BaseTask : DefaultTask() {
 
         return output
     }
+}
+
+abstract class BaseTask : DefaultTask() {
+    protected val bash = Bash()
 
     fun printError(errorMsg: String) {
         System.err.println("❌ $errorMsg")
