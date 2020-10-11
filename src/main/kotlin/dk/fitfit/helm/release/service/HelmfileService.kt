@@ -46,6 +46,7 @@ class HelmfileService(private val path: String = "./", private val file: String 
 
         val message = "Bump $projectName to version $version in the $environment environment"
         git.commit(file, message)
+        git.push()
     }
 
     fun sync(projectName: String, environment: String) {
