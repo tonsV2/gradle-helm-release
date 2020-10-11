@@ -9,6 +9,7 @@ class HelmfileService(private val path: String = "./", private val file: String 
     private val yaml = Yaml()
     private val bash = Bash()
     private val helmfile = File("$path$file")
+    private val git = GitService(path)
 
     fun getEnvironments(): Set<String> {
         val inputStream = File("$path$file").inputStream()
@@ -43,7 +44,8 @@ class HelmfileService(private val path: String = "./", private val file: String 
 
         helmfile.writeText(updatedHelmfile)
 
-        // TODO: Git commit
+        val message = "Bump $projectName to version $version in the $environment environment"
+        git.commit(file, message)
     }
 
     fun sync(projectName: String, environment: String) {
