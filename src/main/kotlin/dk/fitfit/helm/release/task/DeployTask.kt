@@ -1,10 +1,13 @@
 package dk.fitfit.helm.release.task
 
-import dk.fitfit.helm.release.service.helmfile.HelmfileService
+import dk.fitfit.helm.release.service.HelmService
+import dk.fitfit.helm.release.service.HelmfileService
 import org.gradle.api.tasks.TaskAction
+import java.lang.RuntimeException
 
 open class DeployTask : BaseTask() {
     private val helmfileService: HelmfileService = HelmfileService("../nuc-stack/")
+    private val helmService: HelmService = HelmService()
 
     @TaskAction
     fun execute() {
@@ -29,17 +32,30 @@ open class DeployTask : BaseTask() {
         targets.forEach {
             val environment = it.key
             val version = it.value
-            // TODO: Assert version exists
-            // https://helm.sh/docs/helm/helm_list/
+
+            val exists = helmService.searchRepo(project.name, version)
+            if (!exists) {
+//                throw ChartNotFoundInRepositoryException(project.name, version)
+                printError("ChartNotFoundInRepositoryException(${project.name}, $version)")
+            }
+
             val currentVersion = helmfileService.getVersion(project.name, environment)
             if (currentVersion != version) {
                 helmfileService.update(project.name, environment, version)
                 helmfileService.sync(project.name, environment)
-                // TODO: Assert success
-                // https://helm.sh/docs/helm/helm_status/
+                val isDeployed = helmfileService.isDeployed(project.name, environment, version)
+                if (isDeployed) {
+                    printSuccess("Succesfully deployed version $version of ${project.name} in environment $environment")
+                } else {
+//                    throw ChartNotDeployedException(project.name, version)
+                    printError("ChartNotDeployedException(${project.name}, $version)")
+                }
             } else {
-                println("Stack already contains requested version ($environment, $version)")
+                println("Stack already contains version $version of ${project.name} in environment $environment")
             }
         }
     }
 }
+
+open class ChartNotFoundInRepositoryException(chart: String, version: String) : RuntimeException("❌ Chart not found in repsitory! ($chart, $version)")
+open class ChartNotDeployedException(chart: String, version: String) : RuntimeException("❌ Chart not deployed! ($chart, $version)")
