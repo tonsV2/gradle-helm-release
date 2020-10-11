@@ -91,12 +91,12 @@ open class ReleaseTask : BaseTask() {
 
     private fun gitPushTags() {
         val gitPushTagsCommand = "git push --tags"
-        exec(gitPushTagsCommand, extensions.chartPath)
+        bash.exec(gitPushTagsCommand)
     }
 
     private fun gitPush() {
         val gitPushCommand = "git push"
-        exec(gitPushCommand, extensions.chartPath)
+        bash.exec(gitPushCommand)
     }
 
     private fun deleteLocalPackage(chartName: String) {
@@ -123,7 +123,7 @@ open class ReleaseTask : BaseTask() {
                     ${extensions.repository.url}
             """.trimIndent()
         }
-        exec(postChartCommand, extensions.chartPath)
+        bash.exec(postChartCommand)
     }
 
     private fun createChartPackage() {
@@ -140,19 +140,19 @@ open class ReleaseTask : BaseTask() {
         } else {
             "helm package $overrideChartVersion$overrideAppVersion${extensions.chartPath}"
         }
-        exec(helmPackageCommand, extensions.chartPath)
+        bash.exec(helmPackageCommand)
     }
 
     private fun gitTag() {
         // TODO: Custom tag... Make the tag customizable through an extension property
         val gitTagCommand = "git tag \"RELEASE-$chartVersion\""
-        exec(gitTagCommand, extensions.chartPath)
+        bash.exec(gitTagCommand)
     }
 
     private fun gitCommit() {
         // TODO: Custom commit message... Make the commit message customizable through an extension property
         val gitCommitCommand = "git commit $chartPath -m \"Bump version\""
-        exec(gitCommitCommand, extensions.chartPath)
+        bash.exec(gitCommitCommand)
     }
 
     private fun writeBackVersion() {
@@ -207,7 +207,7 @@ open class ReleaseTask : BaseTask() {
 
     private fun cleanWorkingDirectory(): Boolean {
         val command = "git status --porcelain"
-        val output = exec(command, extensions.chartPath)
+        val output = bash.exec(command)
         return output.isNotEmpty()
     }
 
