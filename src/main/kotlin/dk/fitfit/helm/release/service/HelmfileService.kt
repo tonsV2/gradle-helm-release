@@ -31,7 +31,7 @@ class HelmfileService(private val path: String = ".", private val file: String =
             |(?:\R\h{10}.*)*?\R\h{10}$property:\h*)\S+(.*)
         """.trimMargin().toRegex(RegexOption.COMMENTS)
 
-    fun update(projectName: String, environment: String, version: String) {
+    fun updateStack(projectName: String, environment: String, version: String) {
         val helmfileContent = helmfile.readText()
 
         val versionRegex = getReplacePropertyRegex(projectName, environment, "version")
