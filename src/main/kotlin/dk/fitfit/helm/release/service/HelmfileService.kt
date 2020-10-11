@@ -38,7 +38,7 @@ class HelmfileService(private val path: String = ".", private val file: String =
         val versionUpdatedHelmfile = versionRegex.replaceFirst(helmfileContent, "$1$version$2")
 
         val installedRegex = getReplacePropertyRegex(projectName, environment, "installed")
-        val installed = version == "0"
+        val installed = version != "0"
         val updatedHelmfile = installedRegex.replaceFirst(versionUpdatedHelmfile, "$1$installed$2")
 
         helmfile.writeText(updatedHelmfile)
