@@ -45,6 +45,7 @@ open class DeployTask : BaseTask() {
             return
         }
 
+        confirmChartNotAlreadyDeployed(deployRequests)
         confirmAllChartsExists(deployRequests)
 
         deployRequests.forEach {
@@ -67,6 +68,15 @@ open class DeployTask : BaseTask() {
         }
 
         tempDirectory.deleteRecursively()
+    }
+
+    private fun confirmChartNotAlreadyDeployed(deployRequests: List<DeployRequest>) {
+        deployRequests.forEach {
+            val isDeployed = helmfileService.isDeployed(projectName, it.environment, it.version)
+            if (isDeployed) {
+                throw ChartIsDeployedButNotInStackException(it.environment, it.version)
+            }
+        }
     }
 
     private fun findLatestVersionByEnvironment(tags: Set<String>, environment: String): String = tags
@@ -92,4 +102,5 @@ class DeployRequest(val environment: String, val version: String)
 
 open class ChartNotFoundInRepositoryException(chart: String, version: String) : RuntimeException("❌ Chart not found in repsitory! ($chart, $version)")
 open class ChartNotDeployedException(chart: String, version: String) : RuntimeException("❌ Chart not deployed! ($chart, $version)")
+open class ChartIsDeployedButNotInStackException(environment: String, version: String) : RuntimeException("❌ Chart found in cluster but not in stack! ($environment, $version)")
 open class EmptyStackPropertyException : RuntimeException("❌ The stack property needs to be set in order to clone stack")
