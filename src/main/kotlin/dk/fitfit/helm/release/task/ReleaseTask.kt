@@ -13,8 +13,6 @@ open class ReleaseTask : BaseTask() {
     private val versionRegex = "version: (\\S+)".toRegex()
     private val nameRegex = "name: (\\S+)".toRegex()
 
-    private val extensions = mergeExtensions()
-
     private lateinit var chartPath: String
     private lateinit var chartFile: File
     private lateinit var chartFileContent: String
@@ -209,19 +207,5 @@ open class ReleaseTask : BaseTask() {
         val command = "git status --porcelain"
         val output = bash.exec(command)
         return output.isNotEmpty()
-    }
-
-    private fun mergeExtensions(): HelmReleaseExtension {
-        val extensions: HelmReleaseExtension = project.extensions.getByType(HelmReleaseExtension::class.java)
-
-        val gitExtension: GitExtension = project.extensions.getByType(GitExtension::class.java)
-        val signatureExtension: SignatureExtension = project.extensions.getByType(SignatureExtension::class.java)
-        val repositoryExtension: RepositoryExtension = project.extensions.getByType(RepositoryExtension::class.java)
-
-        extensions.git = gitExtension
-        extensions.signature = signatureExtension
-        extensions.repository = repositoryExtension
-
-        return extensions
     }
 }

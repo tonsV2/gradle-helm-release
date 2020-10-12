@@ -1,5 +1,9 @@
 package dk.fitfit.helm.release.task
 
+import dk.fitfit.helm.release.GitExtension
+import dk.fitfit.helm.release.HelmReleaseExtension
+import dk.fitfit.helm.release.RepositoryExtension
+import dk.fitfit.helm.release.SignatureExtension
 import net.justmachinery.shellin.*
 import net.justmachinery.shellin.exec.InvalidExitCodeException
 import org.gradle.api.DefaultTask
@@ -34,6 +38,7 @@ class Bash {
 }
 
 abstract class BaseTask : DefaultTask() {
+    protected val extensions = mergeExtensions()
     protected val bash = Bash()
 
     fun printError(errorMsg: String) {
@@ -42,6 +47,20 @@ abstract class BaseTask : DefaultTask() {
 
     fun printSuccess(successMsg: String) {
         println("✅ $successMsg")
+    }
+
+    private fun mergeExtensions(): HelmReleaseExtension {
+        val extensions: HelmReleaseExtension = project.extensions.getByType(HelmReleaseExtension::class.java)
+
+        val gitExtension: GitExtension = project.extensions.getByType(GitExtension::class.java)
+        val signatureExtension: SignatureExtension = project.extensions.getByType(SignatureExtension::class.java)
+        val repositoryExtension: RepositoryExtension = project.extensions.getByType(RepositoryExtension::class.java)
+
+        extensions.git = gitExtension
+        extensions.signature = signatureExtension
+        extensions.repository = repositoryExtension
+
+        return extensions
     }
 }
 

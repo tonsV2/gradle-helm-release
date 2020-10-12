@@ -5,11 +5,10 @@ import dk.fitfit.helm.release.task.Bash
 import org.yaml.snakeyaml.Yaml
 import java.io.File
 
-class HelmfileService(private val path: String = "./", private val file: String = "helmfile.yaml") {
+class HelmfileService(val path: String = "./", val file: String = "helmfile.yaml") {
     private val yaml = Yaml()
     private val bash = Bash()
     private val helmfile = File("$path$file")
-    private val git = GitService(path)
 
     fun getEnvironments(): Set<String> {
         val inputStream = File("$path$file").inputStream()
@@ -43,10 +42,6 @@ class HelmfileService(private val path: String = "./", private val file: String 
         val updatedHelmfile = installedRegex.replaceFirst(versionUpdatedHelmfile, "$1$installed$2")
 
         helmfile.writeText(updatedHelmfile)
-
-        val message = "Bump $projectName to version $version in the $environment environment"
-        git.commit(file, message)
-        git.push()
     }
 
     fun sync(projectName: String, environment: String) {
@@ -66,9 +61,12 @@ class HelmfileService(private val path: String = "./", private val file: String 
         val namespace = first["namespace"]
 // TODO: Move to HelmService... Or merge HelmfileService and HelmService?
         val helmListCommand = "helm list -n $namespace --filter '$name' -o json"
-        val helmListOutput = bash.exec(helmListCommand, path)
+        val helmListOutput = bash.exec(helmListCommand)
 
         val helmListOutputObj: List<Map<String, String>> = yaml.load(helmListOutput[0])
+        if (helmListOutputObj.isEmpty()) {
+            return false
+        }
         val chart = helmListOutputObj[0]["chart"]
         val status = helmListOutputObj[0]["status"]
         return chart == "$projectName-$version" && status == "deployed"

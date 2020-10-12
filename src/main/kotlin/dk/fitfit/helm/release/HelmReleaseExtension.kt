@@ -20,6 +20,7 @@ open class RepositoryExtension(
 
 open class HelmReleaseExtension(
         var debug: Boolean = false,
+        var stack: String = "",
         var chartPath: String = ".",
         var overrideChartVersion: String = "",
         var overrideAppVersion: String = "",
