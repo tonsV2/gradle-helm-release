@@ -53,14 +53,13 @@ class HelmfileService(val path: String = "./", val file: String = "helmfile.yaml
         val helmfileListCommand = "helmfile -e $environment list --output json"
         val output = bash.exec(helmfileListCommand, path)
         val obj: List<Map<String, Any>> = yaml.load(output[0])
-        val first = obj.first {
+        val chartMap = obj.find {
             it["name"] == projectName && it["enabled"].toString().toBoolean()
-        }
+        } ?: return false
 
-        val name = first["name"]
-        val namespace = first["namespace"]
+        val namespace = chartMap["namespace"]
 // TODO: Move to HelmService... Or merge HelmfileService and HelmService?
-        val helmListCommand = "helm list -n $namespace --filter '$name' -o json"
+        val helmListCommand = "helm list -n $namespace --filter '$projectName' -o json"
         val helmListOutput = bash.exec(helmListCommand)
 
         val helmListOutputObj: List<Map<String, String>> = yaml.load(helmListOutput[0])

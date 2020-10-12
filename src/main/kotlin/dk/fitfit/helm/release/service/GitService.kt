@@ -21,7 +21,7 @@ class GitService(private val path: String = "./") {
 
     fun push() {
         val gitPushCommand = "git push"
-//        bash.exec(gitPushCommand, path)
+        bash.exec(gitPushCommand, path)
     }
 
     fun commit(file: String, message: String) {

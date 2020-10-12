@@ -7,7 +7,7 @@ import org.gradle.api.tasks.TaskAction
 
 open class DeployTask : BaseTask() {
     private val gitAppService = GitService()
-    private val tempDirectory = createTempDir("gradle-helm-release")
+    private val tempDirectory = createTempDir("gradle-helm-release-")
     private val stackPath = tempDirectory.absolutePath + "/"
     private val helmfileService = HelmfileService(stackPath)
     private val gitStackService = GitService(stackPath)
@@ -38,44 +38,63 @@ open class DeployTask : BaseTask() {
                     val version = findLatestVersionByEnvironment(tags, environment)
                     DeployRequest(environment, version)
                 }
-                .filter { alreadyInStack(it) }
-
-        if (deployRequests.isEmpty()) {
-            println("No deployment requests!")
-            return
-        }
-
-        confirmChartNotAlreadyDeployed(deployRequests)
-        confirmAllChartsExists(deployRequests)
 
         deployRequests.forEach {
+            confirmChartExists(it)
+
             val environment = it.environment
             val version = it.version
 
-            helmfileService.updateStack(projectName, environment, version)
-            helmfileService.sync(projectName, environment)
+            if (!alreadyInStack(it)) {
+                helmfileService.updateStack(projectName, environment, version)
+                printSuccess("$projectName updated to version $version in $environment")
 
-            val isDeployed = helmfileService.isDeployed(projectName, environment, version)
-            if (isDeployed) {
-                printSuccess("Succesfully deployed version $version of $projectName in environment $environment")
-            } else {
-                throw ChartNotDeployedException(projectName, version)
+                if (isDeleteRequest(it)) {
+                    val message = "Uninstall $projectName from $environment"
+                    gitStackService.commit(helmfileService.file, message)
+                } else {
+                    val message = "Update $projectName to version $version in $environment"
+                    gitStackService.commit(helmfileService.file, message)
+                }
+                printSuccess("Stack committed")
+
+                gitStackService.push()
+                printSuccess("Stack pushed")
             }
 
-            val message = "Bump $projectName to version $version in the $environment environment"
-            gitStackService.commit("${helmfileService.path}${helmfileService.file}", message)
-            gitStackService.push()
+            if (!alreadyInCluster(it)) {
+                helmfileService.sync(projectName, environment)
+
+                val isDeployed = alreadyInCluster(it)
+
+                if (isDeleteRequest(it)) {
+                    if (!isDeployed) {
+                        printSuccess("$projectName undeployed from $environment")
+                    } else {
+                        // TODO
+                        printError("Wrong!!!")
+                    }
+                } else {
+                    if (isDeployed) {
+                        printSuccess("Version $version of $projectName deployed to $environment")
+                    } else {
+                        throw ChartNotDeployedException(projectName, version)
+                    }
+                }
+            }
         }
 
         tempDirectory.deleteRecursively()
     }
 
-    private fun confirmChartNotAlreadyDeployed(deployRequests: List<DeployRequest>) {
-        deployRequests.forEach {
-            val isDeployed = helmfileService.isDeployed(projectName, it.environment, it.version)
-            if (isDeployed) {
-                throw ChartIsDeployedButNotInStackException(it.environment, it.version)
-            }
+    private fun confirmChartExists(deployRequest: DeployRequest) {
+        if (isDeleteRequest(deployRequest)) {
+            return
+        }
+
+        val exists = helmService.searchRepo(projectName, deployRequest.version)
+        if (!exists) {
+            throw ChartNotFoundInRepositoryException(projectName, deployRequest.version)
         }
     }
 
@@ -85,22 +104,17 @@ open class DeployTask : BaseTask() {
 
     private fun alreadyInStack(deployRequest: DeployRequest): Boolean {
         val currentVersion = helmfileService.getVersion(projectName, deployRequest.environment)
-        return currentVersion != deployRequest.version
+        return deployRequest.version == currentVersion
     }
 
-    private fun confirmAllChartsExists(deployRequests: List<DeployRequest>) {
-        deployRequests.forEach {
-            val exists = helmService.searchRepo(projectName, it.version)
-            if (!exists) {
-                throw ChartNotFoundInRepositoryException(projectName, it.version)
-            }
-        }
-    }
+    private fun alreadyInCluster(deployRequest: DeployRequest): Boolean = helmfileService.isDeployed(projectName, deployRequest.environment, deployRequest.version)
+
+    private fun isDeleteRequest(deployRequest: DeployRequest) = deployRequest.version == "0"
 }
 
 class DeployRequest(val environment: String, val version: String)
 
-open class ChartNotFoundInRepositoryException(chart: String, version: String) : RuntimeException("❌ Chart not found in repsitory! ($chart, $version)")
+open class ChartNotFoundInRepositoryException(chart: String, version: String) : RuntimeException("❌ Chart not found in repository! ($chart, $version)")
 open class ChartNotDeployedException(chart: String, version: String) : RuntimeException("❌ Chart not deployed! ($chart, $version)")
 open class ChartIsDeployedButNotInStackException(environment: String, version: String) : RuntimeException("❌ Chart found in cluster but not in stack! ($environment, $version)")
 open class EmptyStackPropertyException : RuntimeException("❌ The stack property needs to be set in order to clone stack")
