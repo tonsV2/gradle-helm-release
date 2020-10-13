@@ -6,8 +6,6 @@ import dk.fitfit.helm.release.service.HelmService
 import org.gradle.api.tasks.TaskAction
 
 open class BumpChartVersionTask : BaseTask() {
-    // TODO: Should be an extension property
-    private val bumpStrategy = Version.Fraction.MINOR
     private val gitService = GitService()
     private lateinit var helmService: HelmService
 
@@ -28,7 +26,7 @@ open class BumpChartVersionTask : BaseTask() {
 
         val chartVersion = if (extensions.overrideChartVersion.isEmpty()) {
             val chartVersionString = helmService.extractChartVersion()
-            Version.of(chartVersionString).bump(bumpStrategy)
+            Version.of(chartVersionString).bump(extensions.bumpStrategy)
         } else {
             Version.of(extensions.overrideChartVersion)
         }

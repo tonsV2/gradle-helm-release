@@ -25,6 +25,7 @@ open class HelmReleaseExtension(
         var overrideChartVersion: String = "",
         var overrideAppVersion: String = "",
         var bumpVersion: Boolean = true,
+        var bumpStrategy: Version.Fraction = Version.Fraction.MINOR,
         var deleteLocalPackage: Boolean = true,
         var git: GitExtension = GitExtension(),
         var signature: SignatureExtension = SignatureExtension(),

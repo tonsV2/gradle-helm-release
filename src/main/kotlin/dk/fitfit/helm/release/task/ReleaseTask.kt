@@ -7,9 +7,6 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 open class ReleaseTask : BaseTask() {
-    // TODO: Should be an extension value
-    private val bumpStrategy = Version.Fraction.MINOR
-
     private val versionRegex = "version: (\\S+)".toRegex()
     private val nameRegex = "name: (\\S+)".toRegex()
 
@@ -39,7 +36,7 @@ open class ReleaseTask : BaseTask() {
             val chartVersionString = extractChartVersion()
             printSuccess("Chart version extracted: $chartVersionString")
             chartVersion = Version.of(chartVersionString)
-                    .bump(bumpStrategy)
+                    .bump(extensions.bumpStrategy)
             printSuccess("Version bumped: $chartVersion")
         } else {
             chartVersion = Version.of(extensions.overrideChartVersion)
