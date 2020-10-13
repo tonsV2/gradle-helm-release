@@ -41,6 +41,35 @@ abstract class BaseTask : DefaultTask() {
     protected val extensions = mergeExtensions()
     protected val bash = Bash()
 
+    fun printExtensionVariables() {
+        val outputExtension = """
+            Extension values:
+            debug: ${extensions.debug}
+            chartPath: ${extensions.chartPath}
+            bumpVersion: ${extensions.bumpVersion}
+    
+            git.tag: ${extensions.git.tag}
+            git.commit: ${extensions.git.commit}
+            git.push: ${extensions.git.push}
+    
+            signature.key: ${extensions.signature.key}
+            signature.keyStore: ${extensions.signature.keyStore}
+    
+            repository.url: ${extensions.repository.url}
+            repository.username: ${extensions.repository.username}
+            repository.password: ${extensions.repository.password}
+    
+            deleteLocalPackage: ${extensions.deleteLocalPackage}
+            """.trimIndent()
+        println(outputExtension)
+    }
+
+    fun cleanWorkingDirectory(): Boolean {
+        val command = "git status --porcelain"
+        val output = bash.exec(command)
+        return output.isNotEmpty()
+    }
+
     fun printError(errorMsg: String) {
         System.err.println("❌ $errorMsg")
     }
