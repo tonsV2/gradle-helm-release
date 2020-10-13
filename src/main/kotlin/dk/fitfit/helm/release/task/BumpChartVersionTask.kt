@@ -44,7 +44,7 @@ open class BumpChartVersionTask : BaseTask() {
             }
 
             if (extensions.git.tag) {
-                val tag = "RELEASE-$chartVersion"
+                val tag = "RELEASE-chart-$chartVersion"
                 gitService.tag(tag)
                 printSuccess("Git tag: $tag")
             }
