@@ -1,5 +1,8 @@
 package dk.fitfit.helm.release
 
+import dk.fitfit.helm.release.Version.Strategy
+import dk.fitfit.helm.release.Version.Strategy.MINOR
+
 open class GitExtension(
         var requireCleanWorkingDirectory: Boolean = true,
         var tag: Boolean = true,
@@ -25,7 +28,7 @@ open class HelmReleaseExtension(
         var overrideChartVersion: String = "",
         var overrideAppVersion: String = "",
         var bumpVersion: Boolean = true,
-        var bumpStrategy: Version.Fraction = Version.Fraction.MINOR,
+        var bumpStrategy: Strategy = MINOR,
         var deleteLocalPackage: Boolean = true,
         var git: GitExtension = GitExtension(),
         var signature: SignatureExtension = SignatureExtension(),

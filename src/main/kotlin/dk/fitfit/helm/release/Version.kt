@@ -1,6 +1,6 @@
 package dk.fitfit.helm.release
 
-import dk.fitfit.helm.release.Version.Fraction.*
+import dk.fitfit.helm.release.Version.Strategy.*
 
 data class Version(
         val major: Int,
@@ -8,7 +8,7 @@ data class Version(
         val patch: Int,
         val qualifier: String?
 ) {
-    fun bump(strategy: Fraction): Version {
+    fun bump(strategy: Strategy): Version {
         return when (strategy) {
             MAJOR -> Version(major + 1, 0, 0, qualifier)
             MINOR -> Version(major, minor + 1, 0, qualifier)
@@ -16,7 +16,7 @@ data class Version(
         }
     }
 
-    enum class Fraction {
+    enum class Strategy {
         MAJOR, MINOR, PATCH
     }
 
