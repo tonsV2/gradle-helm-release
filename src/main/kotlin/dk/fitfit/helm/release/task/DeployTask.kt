@@ -11,7 +11,6 @@ open class DeployTask : BaseTask() {
     private val stackPath = tempDirectory.absolutePath + "/"
     private val helmfileService = HelmfileService(stackPath)
     private val gitStackService = GitService(stackPath)
-    private val helmService = HelmService()
     private val projectName = project.name
 
     @TaskAction
@@ -96,7 +95,7 @@ open class DeployTask : BaseTask() {
             return
         }
 
-        val exists = helmService.searchRepo(projectName, deployRequest.version)
+        val exists = HelmService.searchRepo(projectName, deployRequest.version)
         if (!exists) {
             throw ChartNotFoundInRepositoryException(projectName, deployRequest.version)
         }
