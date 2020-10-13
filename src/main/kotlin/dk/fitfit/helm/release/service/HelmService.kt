@@ -5,26 +5,25 @@ import dk.fitfit.helm.release.task.Bash
 import org.yaml.snakeyaml.Yaml
 import java.io.File
 
-class HelmService(private val chartPath: String = "./") {
+class HelmService(private val chartPath: String = ".") {
     private lateinit var chartFileContent: String
     private lateinit var chartFile: File
 
     private val versionRegex = "version: (\\S+)".toRegex()
 
     fun readChart(): String {
-        val chartFilePath = "${chartPath}Chart.yaml"
-        chartFile = File(chartFilePath)
+        chartFile = File("${chartPath}/Chart.yaml")
         chartFileContent = if (!chartFile.isFile) {
-            throw IllegalStateException("$chartFilePath not found")
+            throw IllegalStateException("${chartFile.path} not found")
         } else {
             chartFile.readText()
         }
-        return chartFilePath
+        return chartFile.path
     }
 
     fun extractChartVersion(): String {
-        val versionMatchResult = chartFileContent?.let { versionRegex.find(it) }
-                ?: throw IllegalArgumentException("version property not found in $chartPath")
+        val versionMatchResult = chartFileContent.let { versionRegex.find(it) }
+                ?: throw IllegalArgumentException("version property not found in ${chartFile.path}")
         return versionMatchResult.destructured.component1()
     }
 

@@ -9,10 +9,12 @@ open class BumpChartVersionTask : BaseTask() {
     // TODO: Should be an extension property
     private val bumpStrategy = Version.Fraction.MINOR
     private val gitService = GitService()
-    private val helmService = HelmService(extensions.chartPath)
+    private lateinit var helmService: HelmService
 
     @TaskAction
     fun execute() {
+        helmService = HelmService(extensions.chartPath)
+
         if (extensions.debug) {
             printExtensionVariables()
         }
