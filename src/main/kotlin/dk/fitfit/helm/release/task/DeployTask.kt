@@ -14,17 +14,9 @@ open class DeployTask : BaseTask() {
     private val helmService = HelmService()
     private val projectName = project.name
 
-    private fun init() {
-        if (extensions.stack.isEmpty()) {
-            throw EmptyStackPropertyException()
-        }
-
-        gitStackService.clone(extensions.stack, stackPath)
-    }
-
     @TaskAction
     fun execute() {
-        init()
+        cloneStackRepository()
 
         val tags = gitAppService.tags()
 
@@ -84,6 +76,18 @@ open class DeployTask : BaseTask() {
             }
         }
 
+        deleteStackRepository()
+    }
+
+    private fun cloneStackRepository() {
+        if (extensions.stack.isEmpty()) {
+            throw EmptyStackPropertyException()
+        }
+
+        gitStackService.clone(extensions.stack, stackPath)
+    }
+
+    private fun deleteStackRepository() {
         tempDirectory.deleteRecursively()
     }
 
