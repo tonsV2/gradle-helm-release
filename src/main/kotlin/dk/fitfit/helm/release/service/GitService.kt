@@ -22,6 +22,18 @@ class GitService(private val path: String = "./") {
     fun push() {
         val gitPushCommand = "git push"
         bash.exec(gitPushCommand, path)
+        val gitPushTagsCommand = "git push --tags"
+        bash.exec(gitPushTagsCommand, path)
+    }
+
+    fun tag(tag: String) {
+        val gitTagCommand = "git tag $tag"
+        bash.exec(gitTagCommand, path)
+    }
+
+    fun commit(message: String) {
+        val gitCommitCommand = "git commit -m '$message'"
+        bash.exec(gitCommitCommand, path)
     }
 
     fun commit(file: String, message: String) {

@@ -1,5 +1,6 @@
 package dk.fitfit.helm.release
 
+import dk.fitfit.helm.release.task.BumpChartVersionTask
 import dk.fitfit.helm.release.task.DeployTask
 import dk.fitfit.helm.release.task.ReleaseTask
 import org.gradle.api.Plugin
@@ -14,5 +15,6 @@ class HelmReleasePlugin : Plugin<Project> {
 
         project.tasks.create("release", ReleaseTask::class.java)
         project.tasks.create("deploy", DeployTask::class.java)
+        project.tasks.create("bumpChartVersion", BumpChartVersionTask::class.java)
     }
 }
